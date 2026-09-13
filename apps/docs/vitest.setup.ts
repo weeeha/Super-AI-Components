@@ -19,6 +19,37 @@ import { clearResizeObservers, installResizeObserver } from "./test/resize-obser
 installResizeObserver();
 
 afterEach(clearResizeObservers);
+/**
+ * Base UI's animation handling, made deterministic under jsdom. Two settings,
+ * and they only work as a pair.
+ *
+ * `BASE_UI_ANIMATIONS_DISABLED` is the library's own documented switch ("disables
+ * animation-related code, even if supported by the runtime environment",
+ * `@base-ui/react/global.d.ts`). `useAnimationsFinished` reads it first and calls
+ * its callback **synchronously**; without it, the callback is deferred to a
+ * microtask via `Promise.all(...).then(flushSync)`. That timing is load-bearing
+ * for this suite: seven tests across `whats-new`, `tool-panel`, `settings-dialog`
+ * and `selection-toolbar` assert the DOM straight after a `user.click` that swaps
+ * a panel, and on the async path they see the outgoing panel still mounted.
+ *
+ * The flag alone is not enough, because it only guards `useAnimationsFinished`.
+ * `ScrollAreaViewport` calls `viewport.getAnimations({ subtree: true })` directly
+ * on a timer, and jsdom implements no Web Animations API, so that call throws.
+ * It lands *after* the test that triggered it has resolved, which makes it an
+ * unhandled exception that fails the run while every assertion in it passes —
+ * and whether it fires at all is a function of suite length, not of what the
+ * component does. C2 `suggestion-chips` is short enough to escape it; a shell's
+ * suite is not.
+ *
+ * So: the stub keeps the direct call from throwing (it returns no animations, so
+ * the viewport takes its own `length === 0` early return), and the flag keeps
+ * every `useAnimationsFinished` caller on the synchronous path it had before the
+ * stub existed. Removing either one breaks something: drop the stub and the
+ * ScrollArea suites exit 1 with green assertions, drop the flag and those seven
+ * panel tests fail.
+ */
+(globalThis as { BASE_UI_ANIMATIONS_DISABLED?: boolean }).BASE_UI_ANIMATIONS_DISABLED = true;
+window.Element.prototype.getAnimations ??= () => [];
 window.HTMLElement.prototype.scrollIntoView ??= () => {};
 window.HTMLElement.prototype.hasPointerCapture ??= () => false;
 window.HTMLElement.prototype.setPointerCapture ??= () => {};
