@@ -16,13 +16,20 @@ ledgers moved out to `design-system/wave-history.md` — see §9.
 
 ## 1. Where things stand
 
-|                 |                                                                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Repo            | `VV-DSGN-INC/Super-AI-Components`                                                                                                       |
-| Branch          | `claude/wave-2-gates-and-truth`, merged into **local `main`** for wave 0                                                                |
-| HEAD at handoff | **Waves 0 and 2 of the post-case-story remediation** — a portable Storybook gate, D21, and the three gates that existed but never ran   |
-| Pushed          | **Nothing is pushed.** `origin/main` is still at PR #45. Pushing needs the `weeeha` identity, which a work-context session may not have |
-| Preview         | Not deployed. Production serves 133 items and **69 of them differ** from what `main` builds — see §7.                                   |
+|          |                                                                                                                                                                |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo     | `VV-DSGN-INC/Super-AI-Components`                                                                                                                              |
+| Branch   | `main`, at `4e4406c`                                                                                                                                           |
+| HEAD     | **PRs #46–#52 merged 2026-09-13.** Remediation waves 0–3, the prettier gate, the guidance layer, the RTL logical sweep, SAI-05, and the shared ScrollArea stub |
+| Pushed   | **Everything is pushed.** This row read "nothing is pushed, `origin/main` is still at PR #45" for five days after it stopped being true — see the note below   |
+| Deployed | **No.** Measured against production 2026-09-13: of 135 registry items, **97 differ**, 37 are identical and `initials` 404s — see §7                            |
+
+> **Why that `Pushed` row is called out rather than quietly corrected.** It was
+> written when the only `gh auth` account was a work account with `push: false`,
+> which was true then and is not now — `weeeha` holds admin. The row stayed wrong
+> through four merges because nothing checks it: every other claim in this file is
+> pinned by a gate or a test, and this table is prose. Treat it as prose, and
+> re-derive it from `git log origin/main` rather than believing it.
 
 **Catalog progress: 116 shipped. Nothing is planned, nothing is building.**
 11 cut (family G's 10 + O5, per decision D9 — do not revive them).
@@ -796,8 +803,37 @@ green.
 
 ## 7. Deploy state
 
-Production is behind this branch. Deploys are manual, from `apps/docs`, and need
-the `weeeha` GitHub account. Nothing in this round has shipped to production.
+**Production is stale, and this is the measurement rather than an estimate.**
+Deploys are manual, from `apps/docs`, and need the `weeeha` GitHub account.
+Nothing since the case-story program has shipped.
+
+Measured 2026-09-13 by fetching every item from
+`https://super-ai-components.vercel.app/r/` and comparing each file's contents
+against a local `pnpm build:registry`:
+
+|                        |                                                  |
+| ---------------------- | ------------------------------------------------ |
+| items compared         | 135                                              |
+| identical to `main`    | 37                                               |
+| **differ from `main`** | **97**                                           |
+| absent from production | 1 (`initials`, which returns the app's 404 HTML) |
+
+Two things follow that the old "69 of 133" figure did not capture.
+
+`initials` is the lib item wave 3 promoted out of three components. Nothing on
+production references it — those three still carry their inlined copies, so no
+consumer is broken today. But `account-menu`, `record-list` and
+`workspace-switcher` on `main` now list
+`https://super-ai-components.vercel.app/r/initials.json` as a registry
+dependency, by absolute URL. **They are installable only once that file
+exists**, so a deploy that publishes the three without it would break all three
+at `shadcn add` time. One deploy of `public/r` publishes them together, which is
+the normal path; the failure mode is a partial or hand-picked upload.
+
+And the drift is now wide enough that spot-checking is not a check: 72% of the
+catalog differs. `thread-list` alone is two releases behind, serving `text-left`
+from before the RTL sweep and an `AlertDialogAction` that never clears
+`confirmingDelete`.
 
 ---
 
