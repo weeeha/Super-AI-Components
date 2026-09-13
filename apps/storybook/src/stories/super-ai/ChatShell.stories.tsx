@@ -399,10 +399,17 @@ export const ReducedMotion: Story = {
  * asserted here because it is the shell's own default rendering, and the fix
  * belongs to N3 or to a `link` passthrough — not to a story.
  *
- * **Recorded, not fixed — thread titles stay left-aligned.** B6's row button
- * carries `text-left`, so inside a mirrored sidebar every title hugs the wrong
- * edge. It is one byte-identical swap in `thread-list.tsx`, which is another
- * component's file.
+ * **Swept on 2026-09-10, and the entry it closes was wrong about the symptom.**
+ * B6's row button carried `text-left` and now carries `text-start`. This
+ * description used to say that every title therefore hugged the wrong edge
+ * inside a mirrored sidebar, and the play function pinned the computed `left`
+ * as the record of it. Measured under both classes while landing the sweep,
+ * that was never true: the title span is shrink-to-fit, so `text-align` has no
+ * slack to distribute and the glyphs land at `span=70..239` inside
+ * `btn=36..247` either way, flush against the row's start edge. The flex
+ * direction was already doing the mirroring. The swap is still right — it is
+ * byte-identical in LTR and correct in RTL for any row whose title truncates —
+ * but what this story can honestly pin is the declaration, not a placement.
  *
  * **Recorded, not fixed, and the serious one — the sidebar paints on the wrong
  * edge and covers the conversation.** The vendored sidebar splits itself into
@@ -492,11 +499,18 @@ export const RTL: Story = {
       "stop before first letter: true",
     );
 
-    // B6's row button pins its title to the physical left inside a mirrored
-    // sidebar. Another component's file, so recorded rather than swept.
+    // B6's row button declared `text-left` when this story was written, and the
+    // 2026-09-10 sweep took it to `text-start`. What is pinned is the
+    // declaration, deliberately: the title span is shrink-to-fit here
+    // (scrollWidth === clientWidth === 169), so the alignment has no slack to
+    // distribute and the glyphs land in the same place either way — measured
+    // under both classes, `span=70..239` inside `btn=36..247` for each. A
+    // geometric assertion would therefore pass against the unswept file and
+    // prove nothing; it would be reading the flex direction, which mirrors on
+    // its own. Read the row's own RTL story for placement.
     const threadButton = canvasElement.querySelector<HTMLElement>('[data-slot="thread-list-item"] button')!;
     await expect(`thread title textAlign=${getComputedStyle(threadButton).textAlign}`).toBe(
-      "thread title textAlign=left",
+      "thread title textAlign=start",
     );
   },
 };
