@@ -4,16 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { HomeShell, type HomeShellProps } from "./home-shell";
 
-// C2's chip row is a Base UI `ScrollArea`, whose viewport schedules a timeout
-// that calls `getAnimations()` on itself. jsdom implements no Web Animations
-// API, so that call throws — and because it lands on a timer *after* the test
-// that triggered it has resolved, it surfaces as an unhandled exception that
-// fails the run while every assertion passes. `suggestion-chips.test.tsx` is
-// short enough that the timer never fires; a shell's suite is not. Shimmed
-// here rather than in the shared `vitest.setup.ts`, which is not this task's
-// to edit — it belongs there, alongside the ResizeObserver stub.
-window.Element.prototype.getAnimations ??= () => [];
-
 const REGIONS = ["sidebar", "topbar", "hero-omnibox", "feature-cards", "recents-grid"];
 
 const SUGGESTIONS = [

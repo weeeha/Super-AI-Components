@@ -932,12 +932,46 @@ composed into a surface that already has that chrome:**
   `--muted-foreground`; the vendored default remains unsafe for consumers who
   compose a stock `TabsList`, recorded in `vendored-token-findings.md`.
 
-**One infrastructure fix worth doing before the next fan-out:** Base UI's
-`ScrollArea` (under C2 `suggestion-chips`) schedules a timer calling
+**~~One infrastructure fix worth doing before the next fan-out~~ — done
+2026-09-13, and it was a two-part fix, not the one-liner this entry described.**
+Base UI's `ScrollArea` (under C2 `suggestion-chips`) schedules a timer calling
 `getAnimations()`, which jsdom lacks — it throws _after_ the triggering test
 resolves, so every assertion passes and the run still exits 1. O1 shimmed it in
-its own test file; **it belongs in the shared `vitest.setup.ts`** next to the
-ResizeObserver stub, and will bite anything composing a ScrollArea.
+its own test file, and this entry said it belonged in the shared
+`vitest.setup.ts`. Moving it there **on its own turns seven tests red**, in
+`whats-new`, `tool-panel`, `settings-dialog` and `selection-toolbar`.
+
+The mechanism is in `@base-ui/react/internals/useAnimationsFinished.js`, which
+branches on exactly this:
+
+```js
+if (typeof el.getAnimations !== "function" || globalThis.BASE_UI_ANIMATIONS_DISABLED) {
+  fnToExecute(); // synchronous
+  return;
+}
+Promise.all(el.getAnimations().map((a) => a.finished)).then(() => flushSync(fnToExecute));
+```
+
+Defining `getAnimations` moves every Base UI unmount from the synchronous branch
+to a microtask, and those seven tests assert the DOM immediately after a
+`user.click` that swaps a panel — on the deferred path they see the outgoing
+panel still mounted. So the stub cannot be added without also setting
+**`globalThis.BASE_UI_ANIMATIONS_DISABLED = true`**, the library's own documented
+switch ("disables animation-related code, even if supported by the runtime
+environment", `global.d.ts`), which restores the synchronous branch.
+
+The flag is not sufficient either: it guards only `useAnimationsFinished`, and
+`ScrollAreaViewport` calls `viewport.getAnimations({ subtree: true })` directly.
+Both are now in `apps/docs/vitest.setup.ts` with that reasoning at the site, and
+`home-shell.test.tsx`'s local copy is gone. **Remove either one and something
+breaks**, in opposite directions — which is the reason to keep them adjacent.
+
+Two things worth carrying forward. Whether the ScrollArea timer fires is a
+function of **suite length**, not of what the component does, so the next suite
+to grow past the threshold would have hit this with no change of its own. And
+the general shape: a jsdom stub that makes a feature-detect start succeeding
+does not only stop a crash, it moves every consumer of that detect onto its
+other branch.
 
 ### Added by the wave 0 story retrofit (2026-08-15)
 
