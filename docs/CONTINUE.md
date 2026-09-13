@@ -1007,6 +1007,21 @@ that is where the backlog lives.
   row's classes — both change together or neither does. The workflow carries
   all three rules in code and in the skeptic's checklist.
 
+  **A fourth thing the sweep taught, found when its own CI went red:** a story
+  that records an un-swept physical class may be recording a symptom that does
+  not exist. `ChatShell`'s RTL story pinned `thread-list`'s computed
+  `text-align: left` and described every thread title as hugging the wrong edge
+  in a mirrored sidebar. The swap turned the pin red, and measuring both classes
+  to fix it showed the description had never been true: the title span is
+  shrink-to-fit, so `text-align` has no slack to distribute and the glyphs sit at
+  `span=70..239` inside `btn=36..247` under `text-left` and `text-start` alike,
+  flush to the row's start edge. The flex direction was doing the mirroring all
+  along. The swap stays — byte-identical in LTR, correct in RTL for any row whose
+  title truncates — but the story now pins the declaration and says why a
+  geometric assertion there would pass against the un-swept file and prove
+  nothing. **When a swap turns a recorded measurement red, re-measure both sides
+  before believing either the record or the fix.**
+
   The sites the original table listed, verified present 2026-08-15, all landed
   or had already been swapped by an earlier wave:
 
